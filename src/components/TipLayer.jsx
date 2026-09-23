@@ -2,7 +2,7 @@ import { useEffect, useId, useLayoutEffect, useRef, useState } from 'react';
 import { computeTooltipPosition } from '../lib/tourPosition';
 import './tip-layer.less';
 
-const SHOW_DELAY_MS = 450;
+const SHOW_DELAY_MS = 1000;
 
 /**
  * TipLayer — one delegated hover-tooltip renderer per window, driven by
@@ -20,10 +20,9 @@ const SHOW_DELAY_MS = 450;
  * the UI.
  *
  * Deliberately NOT a per-element wrapper component: with 20+ tooltip
- * sites across toolbars or the per-word spans in ScriptViewer (unbounded
- * fan-out), one delegated listener plus a single positioned bubble is far
- * cheaper than one hover state + one absolutely-positioned node per
- * trigger. It also matters here specifically because several triggers sit
+ * sites across toolbars, one delegated listener plus a single positioned
+ * bubble is far cheaper than one hover state + one absolutely-positioned
+ * node per trigger. It also matters here specifically because several triggers sit
  * inside `overflow: hidden` containers (e.g. .ov-head) — a `position:
  * fixed` node rendered THERE would still get clipped by that ancestor;
  * mounting the bubble at the window root sidesteps that entirely.
@@ -37,8 +36,14 @@ const SHOW_DELAY_MS = 450;
  *     optional parity, it's matching what was there before.
  *   - `pointer-events: none` means the bubble never needs to be
  *     "hoverable" itself — there's nothing interactive inside it.
+ *
+ * Restraint: tips wait SHOW_DELAY_MS, only show on focus when it's
+ * keyboard focus (:focus-visible), never show mid-drag, dismiss on click
+ * (and stay quiet on that trigger until the pointer leaves), and dismiss
+ * on scroll. Users can turn them off entirely (`showTooltips` setting →
+ * the `enabled` prop); `aria-label` keeps every trigger named regardless.
  */
-export function TipLayer() {
+export function TipLayer({ enabled = true }) {
   const [tip, setTip] = useState(null); // { label, rect, side, el } | null
   const bubbleRef = useRef(null);
   const [bubbleSize, setBubbleSize] = useState({ w: 0, h: 0 });
@@ -81,12 +86,22 @@ export function TipLayer() {
   };
 
   useEffect(() => {
+    if (!enabled) return undefined;
     const findTarget = (e) => e.target.closest?.('[data-tip]');
+    // A trigger the user just clicked stays quiet until the pointer leaves
+    // it — they've already acted on it, so a tooltip is noise.
+    let suppressedEl = null;
 
     const open = (e) => {
       const el = findTarget(e);
       if (!el || !el.getAttribute('data-tip')) return;
       if (el.contains(e.relatedTarget)) return; // moved within the same trigger, not a fresh enter
+      if (el === suppressedEl) return;
+      if (e.type === 'mouseover' && e.buttons) return; // mid-drag (window drag, resize grip, text selection)
+      // Only keyboard focus earns a tooltip; focus that arrives from a
+      // mouse click (buttons are focusable) would otherwise pop one right
+      // after every click.
+      if (e.type === 'focusin' && !el.matches(':focus-visible')) return;
       clearTimeout(timerRef.current);
       pendingRef.current = true;
       timerRef.current = setTimeout(() => {
@@ -103,7 +118,20 @@ export function TipLayer() {
       const el = findTarget(e);
       if (!el) return;
       if (el.contains(e.relatedTarget)) return; // still within the same trigger
+      if (e.type === 'mouseout' && el === suppressedEl) suppressedEl = null;
       closeTip();
+    };
+
+    const onPointerDown = (e) => {
+      const el = findTarget(e);
+      if (el) suppressedEl = el;
+      if (pendingRef.current) closeTip();
+    };
+
+    // The bubble is positioned against the trigger's rect at show time, so
+    // any scroll would leave it floating over the wrong thing.
+    const onScroll = () => {
+      if (pendingRef.current) closeTip();
     };
 
     const onKeyDown = (e) => {
@@ -119,18 +147,23 @@ export function TipLayer() {
     document.addEventListener('mouseout', close);
     document.addEventListener('focusin', open);
     document.addEventListener('focusout', close);
+    document.addEventListener('pointerdown', onPointerDown, true);
+    document.addEventListener('scroll', onScroll, true);
+    document.addEventListener('wheel', onScroll, { capture: true, passive: true });
     document.addEventListener('keydown', onKeyDown);
     return () => {
       document.removeEventListener('mouseover', open);
       document.removeEventListener('mouseout', close);
       document.removeEventListener('focusin', open);
       document.removeEventListener('focusout', close);
+      document.removeEventListener('pointerdown', onPointerDown, true);
+      document.removeEventListener('scroll', onScroll, true);
+      document.removeEventListener('wheel', onScroll, { capture: true });
       document.removeEventListener('keydown', onKeyDown);
-      clearTimeout(timerRef.current);
-      undescribe();
+      closeTip();
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [bubbleId]);
+  }, [bubbleId, enabled]);
 
   // Measure the bubble's real rendered size once it mounts (label length
   // varies), same two-pass approach as TourTip.
@@ -140,7 +173,7 @@ export function TipLayer() {
     if (width && height) setBubbleSize({ w: width, h: height });
   }, [tip]);
 
-  if (!tip) return null;
+  if (!tip || !enabled) return null;
 
   const viewport = { width: window.innerWidth, height: window.innerHeight };
   const size = bubbleSize.w ? bubbleSize : { w: 120, h: 26 }; // pre-measure guess
