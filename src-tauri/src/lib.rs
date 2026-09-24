@@ -380,6 +380,7 @@ pub fn run() {
     ];
 
     tauri::Builder::default()
+        .register_asynchronous_uri_scheme_protocol(packs::host::SCHEME, packs::host::protocol)
         .menu(build_app_menu)
         .on_menu_event(|app, event| {
             if event.id.as_ref() == "about" {
@@ -441,6 +442,7 @@ pub fn run() {
             packs::commands::packs_uninstall,
             packs::commands::packs_list,
             packs::commands::packs_set_enabled,
+            packs::commands::packs_logs,
             packs::commands::packs_net_log,
             packs::commands::packs_net_clear_log,
             packs::commands::packs_rpc_result,
@@ -461,4 +463,67 @@ pub fn run() {
                 detach_all_from_anchor(app_handle);
             }
         });
+}
+
+#[cfg(test)]
+mod acl_tests {
+    //! Every command the app registers must be in build.rs's APP_COMMANDS
+    //! (so Tauri enforces an ACL for it) and granted to the app windows in
+    //! capabilities/default.json, and to nothing else.
+
+    fn quoted_names(src: &str) -> Vec<String> {
+        src.split('"')
+            .skip(1)
+            .step_by(2)
+            .map(String::from)
+            .collect()
+    }
+
+    #[test]
+    fn app_commands_are_all_granted() {
+        let lib = include_str!("lib.rs");
+        let handler = lib
+            .split("generate_handler![")
+            .nth(1)
+            .and_then(|s| s.split("])").next())
+            .expect("generate_handler! list");
+        let mut registered: Vec<String> = handler
+            .split(',')
+            .map(|s| s.trim().rsplit("::").next().unwrap_or("").to_string())
+            .filter(|s| !s.is_empty())
+            .collect();
+        registered.sort();
+
+        let build = include_str!("../build.rs");
+        let list = build.split("APP_COMMANDS: &[&str] = &[").nth(1).unwrap();
+        let mut declared = quoted_names(list.split("];").next().unwrap());
+        declared.sort();
+        assert_eq!(registered, declared, "build.rs APP_COMMANDS is out of sync");
+
+        let caps: serde_json::Value =
+            serde_json::from_str(include_str!("../capabilities/default.json")).unwrap();
+        let windows: Vec<&str> = caps["windows"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .filter_map(|w| w.as_str())
+            .collect();
+        assert!(
+            !windows.contains(&"packhost"),
+            "the pack host gets no capabilities"
+        );
+        let perms: Vec<&str> = caps["permissions"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .filter_map(|p| p.as_str())
+            .collect();
+        for cmd in &declared {
+            let perm = format!("allow-{}", cmd.replace('_', "-"));
+            assert!(
+                perms.contains(&perm.as_str()),
+                "{perm} missing from default.json"
+            );
+        }
+    }
 }
