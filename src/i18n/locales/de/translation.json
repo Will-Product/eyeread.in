@@ -342,5 +342,36 @@
         "body": "Setzt den Prompter auf seine Standardgröße und zentrierte Position zurück, falls du ihn verschoben oder in der Größe geändert hast."
       }
     }
+  },
+  "packs": {
+    "title": "Packs",
+    "apps": {
+      "title": "Verbundene Apps",
+      "enable": "Verbundene Apps erlauben",
+      "enableHint": "Erlaubt Apps auf diesem Computer, sich über eine lokale API (127.0.0.1:{{port}}) mit eyeread.in zu verbinden. Standardmäßig aus; jede App braucht deine Zustimmung.",
+      "errorPortInUse": "Port {{port}} wird bereits von einer anderen App verwendet, daher können verbundene Apps eyeread.in nicht erreichen.",
+      "errorStart": "Die API für verbundene Apps konnte nicht gestartet werden.",
+      "none": "Noch keine Apps verbunden.",
+      "revoke": "Widerrufen",
+      "docs": "Eine verbundene App entwickeln",
+      "docsHint": "API-Referenz und Beispiele für Entwickler.",
+      "docsCta": "Doku öffnen",
+      "pairTitle": "„{{name}}“ möchte sich verbinden",
+      "pairIntro": "Eine App auf diesem Computer möchte eyeread.in verwenden. Erlaube nur Apps, denen du vertraust. Du kannst den Zugriff jederzeit unter Einstellungen → Packs → Verbundene Apps widerrufen.",
+      "allow": "Erlauben",
+      "deny": "Ablehnen"
+    },
+    "permissions": {
+      "scriptsWrite": "Skripte hinzufügen",
+      "prompterLoad": "In den Prompter laden",
+      "prompterControl": "Wiedergabe steuern",
+      "prompterEvents": "Lesefortschritt sehen"
+    },
+    "permissionHints": {
+      "scriptsWrite": "Fügt deiner Bibliothek neue Skripte hinzu.",
+      "prompterLoad": "Öffnet Text im Prompter und startet eine Lesesitzung.",
+      "prompterControl": "Abspielen, pausieren, neu starten, zu einem Wort springen oder den Prompter schließen.",
+      "prompterEvents": "Titel des aktuellen Skripts und deine Position darin, während du liest."
+    }
   }
 }

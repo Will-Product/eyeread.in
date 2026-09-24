@@ -1,3 +1,5 @@
+mod packs;
+
 use std::sync::Mutex;
 use tauri::{
     menu::{Menu, MenuItem, PredefinedMenuItem, Submenu},
@@ -415,8 +417,17 @@ pub fn run() {
             set_app_protected,
             set_dock_hidden,
             attach_window_to_all_spaces,
+            packs::connected_apps::packs_apps_status,
+            packs::connected_apps::packs_apps_set_enabled,
+            packs::connected_apps::packs_apps_revoke,
+            packs::connected_apps::packs_apps_resolve_pairing,
+            packs::connected_apps::packs_apps_rpc_result,
+            packs::connected_apps::packs_apps_prompter_state,
         ])
-        .setup(|_app| Ok(()))
+        .setup(|app| {
+            packs::connected_apps::init(app.handle());
+            Ok(())
+        })
         .build(tauri::generate_context!())
         .expect("error while building eyeread.in")
         .run(|app_handle, event| {

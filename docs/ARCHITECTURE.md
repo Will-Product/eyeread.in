@@ -24,6 +24,13 @@ scrolling at the configured wpm where speech recognition is unavailable (e.g. Li
 WebKitGTK). On macOS, WebKit requires a click inside the overlay before the mic can
 start — the app retries automatically on your first interaction.
 
+**Packs and Connected apps.** Other apps on the same machine can add scripts, load them into the
+prompter, control playback and follow reading progress through **Connected apps**, an opt-in,
+loopback-only HTTP API (`src-tauri/src/packs/connected_apps/`), under Settings → Packs. Each app is
+approved by the user, gets a scoped token, and can be revoked in Settings; calls execute through
+the same window code paths as the UI. Installable **packs** use the same permission names; their
+format is in `spec/packs/`. See [PACKS.md](PACKS.md).
+
 **Hotkeys.**
 
 | Shortcut  | Action                             |

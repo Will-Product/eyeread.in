@@ -7,6 +7,7 @@ import { Slider } from '../components/Slider';
 import { Segmented } from '../components/Segmented';
 import { openExternal, showAboutWindow } from '../lib/tauri';
 import { LanguageSwitcher } from '../components/LanguageSwitcher';
+import { PacksSettings } from './PacksSettings';
 import { defaultSettings, OVERRIDABLE_KEYS, UPDATE_CHECK_HOURS_OPTIONS } from '../lib/store';
 import { voiceAvailable } from '../hooks/useVoiceTracking';
 import { requestMicPermission } from '../lib/mic';
@@ -234,6 +235,9 @@ export function SettingsScreen({
           </div>
         </div>
       )}
+
+      {/* ── Packs (advanced: Connected apps, the local API; off by default) ── */}
+      {advanced && <PacksSettings />}
 
       {/* ── Reading defaults ── */}
       <div className="set-group">
