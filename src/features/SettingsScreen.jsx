@@ -7,6 +7,7 @@ import { Slider } from '../components/Slider';
 import { Segmented } from '../components/Segmented';
 import { openExternal, showAboutWindow } from '../lib/tauri';
 import { LanguageSwitcher } from '../components/LanguageSwitcher';
+import { PacksSettings } from './PacksSettings';
 import { defaultSettings, OVERRIDABLE_KEYS, UPDATE_CHECK_HOURS_OPTIONS } from '../lib/store';
 import { voiceAvailable } from '../hooks/useVoiceTracking';
 import { requestMicPermission } from '../lib/mic';
@@ -64,6 +65,7 @@ export function SettingsScreen({
     highContrast,
     dyslexicFont,
     showIconLabels,
+    showTooltips = true,
     uiScale = 100,
     voice,
     keepMicOpen,
@@ -233,6 +235,9 @@ export function SettingsScreen({
           </div>
         </div>
       )}
+
+      {/* ── Packs (Connected apps, the local API, only in the advanced view) ── */}
+      <PacksSettings advanced={advanced} />
 
       {/* ── Reading defaults ── */}
       <div className="set-group">
@@ -480,6 +485,18 @@ export function SettingsScreen({
             checked={!!showIconLabels}
             label={t('settings.showIconLabels')}
             onChange={(v) => onSettings({ showIconLabels: v })}
+          />
+        </div>
+        <div className="set-row">
+          <div className="set-info">
+            <b>{t('settings.showTooltips')}</b>
+            <span>{t('settings.showTooltipsHint')}</span>
+          </div>
+          <Switch
+            size="sm"
+            checked={!!showTooltips}
+            label={t('settings.showTooltips')}
+            onChange={(v) => onSettings({ showTooltips: v })}
           />
         </div>
         <div className="set-row">

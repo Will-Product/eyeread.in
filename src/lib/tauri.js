@@ -62,6 +62,39 @@ export async function emitTo(label, event, payload) {
   channel().postMessage({ event, payload });
 }
 
+/** Call a Rust command. Native only: callers check `isTauri` first. */
+export async function invoke(cmd, args) {
+  const mod = await import('@tauri-apps/api/core');
+  return mod.invoke(cmd, args);
+}
+
+/** Ask for a folder with the native picker. Resolves to its path, or null. */
+export async function pickFolder(title) {
+  if (!isTauri) return null;
+  const { open } = await import('@tauri-apps/plugin-dialog');
+  const picked = await open({ directory: true, multiple: false, title });
+  return typeof picked === 'string' ? picked : null;
+}
+
+/**
+ * Files dropped onto this window, as native paths (Tauri's drag-and-drop).
+ * `cb(paths)` runs on drop; `onHover(bool)` while files are over the window.
+ * Returns an unlisten function. No-op in the browser demo.
+ */
+export async function onFileDrop(cb, onHover) {
+  if (!isTauri) return () => {};
+  const { getCurrentWebview } = await import('@tauri-apps/api/webview');
+  return getCurrentWebview().onDragDropEvent((e) => {
+    const { type, paths } = e.payload;
+    if (type === 'enter' || type === 'over') onHover?.(true);
+    else if (type === 'leave') onHover?.(false);
+    else if (type === 'drop') {
+      onHover?.(false);
+      cb(paths || []);
+    }
+  });
+}
+
 /** Cross-window event listen. Returns an unlisten function. */
 export async function listen(event, cb) {
   if (isTauri) {
